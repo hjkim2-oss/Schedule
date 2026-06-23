@@ -168,12 +168,13 @@
     { no:"6-3", title:"인성검사 · 경력",       start:"2026-07-10", end:"2026-07-12", content:"경력 1차 면접 합격자 인성검사" },
     { no:"7",   title:"2차면접(대면)",        start:"2026-07-15", end:"2026-07-22", content:"경력 2차 면접" },
     { no:"8-1", title:"입사일(예정) · 인턴",  start:"2026-07-20", end:"2026-07-20", content:"채용연계형 인턴 공식 입사일" },
-    { no:"8-2", title:"입사일(예정) · 경력",  start:"2026-08-03", end:"2026-12-31", content:"경력 입사 (8/3 이후 개별 협의)" }
+    { no:"8-2", title:"입사일(예정) · 경력",  start:"2026-08-03", end:"", content:"경력 입사 (8/3 이후 개별 협의)" }
   ];
 
   const DOW = ["일","월","화","수","목","금","토"];
   const md  = s => `${s.slice(5,7)}.${s.slice(8,10)}`;        // 06.23
   const parse = s => { const [y,m,d]=s.split("-").map(Number); return new Date(y,m-1,d); };
+  const dd  = (iso, d) => `${md(iso)}(${DOW[d.getDay()]})`;   // 06.23(화)
 
   function render(){
     const now = new Date();
@@ -184,8 +185,8 @@
 
     // 상태 판정
     const items = schedules.map(it=>{
-      const s = parse(it.start), e = parse(it.end);
-      let status = today < s ? "soon" : today > e ? "done" : "live";
+      const s = parse(it.start), e = it.end ? parse(it.end) : null;
+      let status = today < s ? "soon" : (e && today > e) ? "done" : "live";
       return {...it, s, e, status};
     });
 
@@ -220,9 +221,13 @@
   }
 
   function stageHero(it, today, kind, dday){
-    const dateTxt = it.start===it.end ? md(it.start) : `${md(it.start)} ~ ${md(it.end)}`;
+    const dateTxt = !it.end ? `${dd(it.start,it.s)} ~ 이후`
+      : it.start===it.end ? dd(it.start,it.s) : `${dd(it.start,it.s)} ~ ${dd(it.end,it.e)}`;
     let bar = "";
     if(kind==="live"){
+      if(!it.e){
+        bar = `<div class="hero-bar"><div class="row"><span>진행중</span><span class="dday">상시</span></div></div>`;
+      } else {
       const total = Math.max(1, (it.e - it.s)/864e5);
       const gone  = Math.min(total, Math.max(0,(today - it.s)/864e5));
       const p = Math.round(gone/total*100);
@@ -230,6 +235,7 @@
       bar = `<div class="hero-bar">
         <div class="row"><span>단계 진행</span><span class="dday">${left>0?`마감까지 D-${left}`:"마감일"}</span></div>
         <div class="track"><div class="fill" style="width:${p}%"></div></div></div>`;
+      }
     } else {
       bar = `<div class="hero-bar">
         <div class="row"><span>시작 예정</span><span class="dday">D-${dday}</span></div></div>`;
@@ -247,7 +253,8 @@
   function renderBoard(items){
     const board = document.getElementById("board");
     board.innerHTML = items.map(it=>{
-      const dateTxt = it.start===it.end ? md(it.start) : `${md(it.start)} ~ ${md(it.end)}`;
+      const dateTxt = !it.end ? `${dd(it.start,it.s)} ~ 이후`
+        : it.start===it.end ? dd(it.start,it.s) : `${dd(it.start,it.s)} ~ ${dd(it.end,it.e)}`;
       const map = {live:["s-live","b-live","● 진행중"], done:["s-done","b-done","종료"], soon:["s-soon","b-soon","예정"]};
       const [cls,bcls,btxt] = map[it.status];
       return `<div class="stage ${cls}">
