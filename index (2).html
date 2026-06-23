@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2026 2분기 채용 현황판</title>
+<style>
+  :root{
+    --ink:#142840;          /* 딥 네이비 잉크 */
+    --ink-2:#1d3a5c;
+    --canvas:#e9eef5;       /* 쿨한 라이트 배경 */
+    --surface:#ffffff;
+    --line:#d7dee8;
+    --text:#152438;
+    --text-soft:#5b6b80;
+    --text-faint:#9aa7b8;
+    --live:#0f9d6b;         /* 진행중 = 에메랄드 */
+    --live-soft:#e3f7ee;
+    --soon:#2f6df0;         /* 예정 = 블루 */
+    --soon-soft:#e7f0ff;
+    --done:#9aa7b8;         /* 종료 = 뮤트 */
+    --amber:#f4a72b;
+    --radius:16px;
+    --mono:'SF Mono','Roboto Mono','Consolas','D2Coding',monospace;
+    --sans:'Pretendard','Apple SD Gothic Neo','Malgun Gothic','맑은 고딕',sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;padding:32px 16px;background:var(--canvas);color:var(--text);
+    font-family:var(--sans);line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:880px;margin:0 auto}
+
+  /* ── 헤더 ── */
+  .topbar{
+    background:var(--ink);color:#fff;border-radius:var(--radius);
+    padding:24px 28px;display:flex;justify-content:space-between;align-items:flex-end;
+    gap:16px;flex-wrap:wrap;box-shadow:0 10px 30px -12px rgba(20,40,64,.55);
+  }
+  .topbar .eyebrow{font-size:.72rem;letter-spacing:.22em;color:#7fa8d6;font-weight:700;text-transform:uppercase}
+  .topbar h1{margin:6px 0 0;font-size:1.55rem;font-weight:800;letter-spacing:-.01em}
+  .today{font-family:var(--mono);font-size:.92rem;color:#bcd2ec}
+  .today b{color:#fff}
+  .progress-mini{min-width:150px;text-align:right}
+  .progress-mini .pct{font-family:var(--mono);font-size:1.9rem;font-weight:700;line-height:1}
+  .progress-mini .lbl{font-size:.72rem;color:#7fa8d6;letter-spacing:.1em;margin-top:2px}
+  .progress-mini .track{height:6px;background:rgba(255,255,255,.16);border-radius:99px;margin-top:10px;overflow:hidden}
+  .progress-mini .fill{height:100%;background:linear-gradient(90deg,#3fd9a0,#0f9d6b);border-radius:99px;transition:width .8s ease}
+
+  /* ── 진행중 히어로 ── */
+  .hero-label{
+    margin:26px 4px 12px;font-size:.8rem;font-weight:800;letter-spacing:.16em;
+    color:var(--text-soft);text-transform:uppercase;display:flex;align-items:center;gap:8px;
+  }
+  .hero-label::before{content:"";width:9px;height:9px;border-radius:99px;background:var(--live);
+    box-shadow:0 0 0 0 rgba(15,157,107,.5);animation:pulse 2.2s infinite}
+  .hero{
+    background:var(--surface);border-radius:var(--radius);padding:26px 28px;
+    border:1px solid var(--line);box-shadow:0 6px 24px -14px rgba(20,40,64,.4);
+    position:relative;overflow:hidden;
+  }
+  .hero.live{border-left:6px solid var(--live)}
+  .hero.upcoming{border-left:6px solid var(--soon)}
+  .hero.empty{border-left:6px solid var(--done)}
+  .hero-top{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .hero-no{font-family:var(--mono);font-size:1.1rem;font-weight:700;color:#fff;background:var(--ink);
+    width:42px;height:42px;border-radius:11px;display:grid;place-items:center;flex-shrink:0}
+  .hero.live .hero-no{background:var(--live)}
+  .hero.upcoming .hero-no{background:var(--soon)}
+  .hero-title{font-size:1.5rem;font-weight:800;letter-spacing:-.01em;margin:0}
+  .chip{font-size:.74rem;font-weight:800;padding:5px 11px;border-radius:99px;letter-spacing:.04em}
+  .chip.live{background:var(--live);color:#fff}
+  .chip.soon{background:var(--soon-soft);color:var(--soon)}
+  .chip.none{background:#eef1f5;color:var(--text-faint)}
+  .hero-meta{font-family:var(--mono);font-size:1rem;color:var(--text-soft);margin:16px 0 4px}
+  .hero-detail{font-size:1.02rem;color:var(--text);margin-top:6px}
+  .hero-bar{margin-top:20px}
+  .hero-bar .row{display:flex;justify-content:space-between;font-size:.78rem;color:var(--text-soft);margin-bottom:7px}
+  .hero-bar .dday{font-family:var(--mono);font-weight:700;color:var(--live)}
+  .hero.upcoming .hero-bar .dday{color:var(--soon)}
+  .hero-bar .track{height:9px;background:#eaeef4;border-radius:99px;overflow:hidden}
+  .hero-bar .fill{height:100%;background:linear-gradient(90deg,#3fd9a0,var(--live));border-radius:99px;transition:width .9s ease}
+
+  /* ── 전체 파이프라인 ── */
+  .section-label{margin:30px 4px 14px;font-size:.8rem;font-weight:800;letter-spacing:.16em;
+    color:var(--text-soft);text-transform:uppercase}
+  .board{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    overflow:hidden;box-shadow:0 6px 24px -16px rgba(20,40,64,.4)}
+  .stage{display:grid;grid-template-columns:54px 1fr auto;gap:16px;align-items:center;
+    padding:15px 22px;border-top:1px solid var(--line);position:relative}
+  .stage:first-child{border-top:none}
+  .node{justify-self:center;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;
+    font-family:var(--mono);font-size:.8rem;font-weight:700;position:relative;z-index:1}
+  /* 연결선 */
+  .stage:not(:last-child) .node::after{content:"";position:absolute;top:34px;left:50%;
+    transform:translateX(-50%);width:2px;height:calc(100% + 30px);background:var(--line);z-index:-1}
+  .stage.s-done .node{background:var(--done);color:#fff}
+  .stage.s-done .node::after{background:var(--done)}
+  .stage.s-live .node{background:var(--live);color:#fff;box-shadow:0 0 0 5px var(--live-soft)}
+  .stage.s-soon .node{background:#fff;color:var(--soon);border:2px solid var(--soon)}
+  .stage-main .name{font-weight:700;font-size:1.02rem}
+  .stage.s-done .stage-main .name{color:var(--text-faint)}
+  .stage-main .sub{font-family:var(--mono);font-size:.82rem;color:var(--text-soft);margin-top:3px}
+  .stage-main .desc{font-size:.86rem;color:var(--text-faint);margin-top:3px}
+  .stage.s-live{background:var(--live-soft)}
+  .stage.s-live .stage-main .name{color:#0b6e4c}
+  .badge{font-size:.72rem;font-weight:800;padding:5px 10px;border-radius:7px;white-space:nowrap;letter-spacing:.03em}
+  .badge.b-live{background:var(--live);color:#fff;animation:pulse-bg 2.2s infinite}
+  .badge.b-soon{background:var(--soon-soft);color:var(--soon)}
+  .badge.b-done{background:#eef1f5;color:var(--text-faint)}
+
+  .foot{text-align:center;color:var(--text-faint);font-size:.78rem;margin:22px 0 4px}
+
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(15,157,107,.5)}70%{box-shadow:0 0 0 8px rgba(15,157,107,0)}100%{box-shadow:0 0 0 0 rgba(15,157,107,0)}}
+  @keyframes pulse-bg{0%,100%{opacity:1}50%{opacity:.78}}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+  @media (max-width:560px){
+    body{padding:18px 10px}
+    .topbar{padding:18px 18px}
+    .topbar h1{font-size:1.25rem}
+    .progress-mini{text-align:left;min-width:0}
+    .hero{padding:20px 18px}
+    .hero-title{font-size:1.25rem}
+    .stage{grid-template-columns:42px 1fr;gap:12px;padding:14px 16px}
+    .stage .badge{grid-column:2;justify-self:start;margin-top:2px}
+    .node{width:30px;height:30px}
+    .stage:not(:last-child) .node::after{top:30px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="topbar">
+    <div>
+      <div class="eyebrow">SPIGEN · 2026 2분기 채용</div>
+      <h1>채용 프로세스 현황판</h1>
+      <div class="today" id="today">오늘 · 로딩 중…</div>
+    </div>
+    <div class="progress-mini">
+      <div class="pct" id="ovr-pct">–</div>
+      <div class="lbl">전체 진행률</div>
+      <div class="track"><div class="fill" id="ovr-fill" style="width:0"></div></div>
+    </div>
+  </header>
+
+  <div class="hero-label">지금 진행중</div>
+  <section class="hero" id="hero"><!-- JS 렌더 --></section>
+
+  <div class="section-label">전체 일정</div>
+  <div class="board" id="board"><!-- JS 렌더 --></div>
+
+  <p class="foot">날짜에 따라 단계 상태가 자동으로 갱신됩니다.</p>
+</div>
+
+<script>
+  // ── 2026년 2분기 채용 일정 ──
+  const schedules = [
+    { no:"1",   title:"부문 TO 접수",         start:"2026-05-22", end:"2026-06-02", content:"팀장 '채용기안서' 상신 → 부문장 전결" },
+    { no:"2",   title:"채용 인원 확정",       start:"2026-05-22", end:"2026-06-02", content:"부문장 '채용정원 보고서' 상신 → 대표이사 결재" },
+    { no:"3",   title:"서류모집",            start:"2026-06-12", end:"2026-06-21", content:"6/21(일) 24시 접수 마감" },
+    { no:"4",   title:"서류전형",            start:"2026-06-23", end:"2026-06-25", content:"6/25(목) 12시 서류평가 마감" },
+    { no:"5",   title:"인적성검사",          start:"2026-06-26", end:"2026-06-28", content:"채용연계형 인턴 인적성 검사" },
+    { no:"6-1", title:"1차면접(화상) · 인턴", start:"2026-07-01", end:"2026-07-06", content:"채용연계형 인턴 1차 면접" },
+    { no:"6-2", title:"1차면접(화상) · 경력", start:"2026-07-06", end:"2026-07-09", content:"경력 1차 면접" },
+    { no:"6-3", title:"인성검사 · 경력",       start:"2026-07-10", end:"2026-07-12", content:"경력 1차 면접 합격자 인성검사" },
+    { no:"7",   title:"2차면접(대면)",        start:"2026-07-15", end:"2026-07-22", content:"경력 2차 면접" },
+    { no:"8-1", title:"입사일(예정) · 인턴",  start:"2026-07-20", end:"2026-07-20", content:"채용연계형 인턴 공식 입사일" },
+    { no:"8-2", title:"입사일(예정) · 경력",  start:"2026-08-03", end:"2026-12-31", content:"경력 입사 (8/3 이후 개별 협의)" }
+  ];
+
+  const DOW = ["일","월","화","수","목","금","토"];
+  const md  = s => `${s.slice(5,7)}.${s.slice(8,10)}`;        // 06.23
+  const parse = s => { const [y,m,d]=s.split("-").map(Number); return new Date(y,m-1,d); };
+
+  function render(){
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    document.getElementById("today").innerHTML =
+      `오늘 · <b>${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,"0")}.${String(now.getDate()).padStart(2,"0")} (${DOW[now.getDay()]})</b>`;
+
+    // 상태 판정
+    const items = schedules.map(it=>{
+      const s = parse(it.start), e = parse(it.end);
+      let status = today < s ? "soon" : today > e ? "done" : "live";
+      return {...it, s, e, status};
+    });
+
+    // 전체 진행률 = 종료된 단계 비율
+    const doneCount = items.filter(i=>i.status==="done").length;
+    const pct = Math.round(doneCount / items.length * 100);
+    document.getElementById("ovr-pct").textContent = pct + "%";
+    document.getElementById("ovr-fill").style.width = pct + "%";
+
+    renderHero(items, today);
+    renderBoard(items);
+  }
+
+  function renderHero(items, today){
+    const hero = document.getElementById("hero");
+    const live = items.filter(i=>i.status==="live");
+    const next = items.find(i=>i.status==="soon");
+
+    if(live.length){
+      hero.className = "hero live";
+      hero.innerHTML = live.map(it=>stageHero(it, today, "live")).join(
+        '<div style="height:1px;background:var(--line);margin:22px 0"></div>');
+    } else if(next){
+      hero.className = "hero upcoming";
+      const dday = Math.ceil((next.s - today)/864e5);
+      hero.innerHTML = stageHero(next, today, "soon", dday);
+    } else {
+      hero.className = "hero empty";
+      hero.innerHTML = `<div class="hero-top"><span class="chip none">진행중 단계 없음</span></div>
+        <p class="hero-detail" style="margin-top:14px">현재 진행 중인 채용 단계가 없습니다.</p>`;
+    }
+  }
+
+  function stageHero(it, today, kind, dday){
+    const dateTxt = it.start===it.end ? md(it.start) : `${md(it.start)} ~ ${md(it.end)}`;
+    let bar = "";
+    if(kind==="live"){
+      const total = Math.max(1, (it.e - it.s)/864e5);
+      const gone  = Math.min(total, Math.max(0,(today - it.s)/864e5));
+      const p = Math.round(gone/total*100);
+      const left = Math.ceil((it.e - today)/864e5);
+      bar = `<div class="hero-bar">
+        <div class="row"><span>단계 진행</span><span class="dday">${left>0?`마감까지 D-${left}`:"마감일"}</span></div>
+        <div class="track"><div class="fill" style="width:${p}%"></div></div></div>`;
+    } else {
+      bar = `<div class="hero-bar">
+        <div class="row"><span>시작 예정</span><span class="dday">D-${dday}</span></div></div>`;
+    }
+    return `<div class="hero-top">
+        <span class="hero-no">${it.no}</span>
+        <h2 class="hero-title">${it.title}</h2>
+        <span class="chip ${kind==="live"?"live":"soon"}">${kind==="live"?"● 진행중":"예정"}</span>
+      </div>
+      <div class="hero-meta">${dateTxt}</div>
+      <div class="hero-detail">${it.content}</div>
+      ${bar}`;
+  }
+
+  function renderBoard(items){
+    const board = document.getElementById("board");
+    board.innerHTML = items.map(it=>{
+      const dateTxt = it.start===it.end ? md(it.start) : `${md(it.start)} ~ ${md(it.end)}`;
+      const map = {live:["s-live","b-live","● 진행중"], done:["s-done","b-done","종료"], soon:["s-soon","b-soon","예정"]};
+      const [cls,bcls,btxt] = map[it.status];
+      return `<div class="stage ${cls}">
+        <div class="node">${it.no}</div>
+        <div class="stage-main">
+          <div class="name">${it.title}</div>
+          <div class="sub">${dateTxt}</div>
+          <div class="desc">${it.content}</div>
+        </div>
+        <span class="badge ${bcls}">${btxt}</span>
+      </div>`;
+    }).join("");
+  }
+
+  window.onload = render;
+</script>
+</body>
+</html>
